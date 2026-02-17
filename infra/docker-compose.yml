@@ -1,0 +1,40 @@
+services:
+  db_listas:
+    image: postgres:16
+    container_name: db_listas
+    environment:
+      POSTGRES_DB: listas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Pq5rSxGwToGsB6m83L0R
+    ports:
+      - "54322:5432"
+    volumes:
+      - db_listas_data:/var/lib/postgresql/data
+      - ../bd:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+  api_listas:
+    image: python:3.12-slim
+    container_name: api_listas
+    working_dir: /app
+    volumes:
+      - ../backend:/app
+    environment:
+      DB_URL: postgresql+psycopg://postgres:Pq5rSxGwToGsB6m83L0R@db_listas:5432/listas
+      JWT_SECRET: "CHANGE_ME_WITH_MIN_32_CHARS_123456"
+      JWT_EXP_MIN: "43200"
+      GOOGLE_CLIENT_ID: "TU_CLIENT_ID_GOOGLE.apps.googleusercontent.com"
+      APP_BASE_URL: "http://192.168.78.151:5174"
+      COOKIE_SECURE: "0"
+      COOKIE_SAMESITE: "lax"
+      COOKIE_NAME: "listas_token"
+      COOKIE_DOMAIN: ""
+    depends_on:
+      - db_listas
+    ports:
+      - "8011:8010"
+    command: bash -lc "pip install -r requirements.txt && uvicorn app:app --host 0.0.0.0 --port 8010 --reload"
+    restart: unless-stopped
+
+volumes:
+  db_listas_data:

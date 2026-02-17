@@ -1,0 +1,47 @@
+# =========================
+# General
+# =========================
+.DS_Store
+Thumbs.db
+*.log
+
+# =========================
+# Python (backend)
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# =========================
+# Node / Vite / React (frontend)
+# =========================
+node_modules/
+dist/
+.vite/
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env files (no subir secretos)
+frontend/.env
+.env
+.env.*
+
+# =========================
+# Docker / Infra
+# =========================
+**/*.pid
