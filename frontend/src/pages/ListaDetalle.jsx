@@ -10,6 +10,8 @@ import {
   Hash,
   DollarSign,
   Save,
+  Search,
+  ArrowUp,
 } from "lucide-react"
 
 function etiquetaRol(data) {
@@ -66,6 +68,8 @@ export default function ListaDetalle() {
   const [cantidadesEdit, setCantidadesEdit] = useState({})
   const [preciosEdit, setPreciosEdit] = useState({})
   const [msg, setMsg] = useState("")
+  const [filtro, setFiltro] = useState("")
+  const [mostrarSubir, setMostrarSubir] = useState(false)
 
   const [abrirModalCopiar, setAbrirModalCopiar] = useState(false)
   const [copiandoRol, setCopiandoRol] = useState("")
@@ -109,6 +113,13 @@ export default function ListaDetalle() {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     }
   }, [id, nav])
+
+  useEffect(() => {
+    const onScroll = () => setMostrarSubir(window.scrollY > 260)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   const rolActual = (data?.rol || "").toLowerCase()
   const puedeEditar = !!data && (data.es_dueno || rolActual === "dueno" || rolActual === "editor")
@@ -315,7 +326,20 @@ export default function ListaDetalle() {
     }
   }
 
+  const subirArriba = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   if (!data) return <div className="p-6">Cargando...</div>
+
+  const filtroNormalizado = filtro.trim().toUpperCase()
+  const itemsFiltrados = filtroNormalizado
+    ? data.items.filter((item) =>
+        `${item.producto || ""} ${item.unidad || ""}`
+          .toUpperCase()
+          .includes(filtroNormalizado)
+      )
+    : data.items
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -338,7 +362,12 @@ export default function ListaDetalle() {
             <Share2 className="w-4 h-4" />
             📋 Copiar enlace
           </button>
-          <button className="btn btn-ghost btn-sm sm:btn-md flex-1 sm:flex-none" onClick={() => nav("/")}>Volver</button>
+          <button
+            className="btn btn-ghost btn-sm sm:btn-md flex-1 sm:flex-none border border-slate-200 bg-white/80 shadow-sm"
+            onClick={() => nav("/")}
+          >
+            Volver
+          </button>
         </div>
       </div>
 
@@ -457,13 +486,45 @@ export default function ListaDetalle() {
         </div>
       )}
 
+      {data.items.length > 0 && (
+        <div className="mt-4 card bg-white/80 border border-white shadow">
+          <div className="card-body py-3">
+            <div className="text-sm font-semibold">🔎 Buscar en la lista</div>
+            <div className="mt-2 flex flex-col sm:flex-row gap-2">
+              <label className="input input-bordered w-full flex items-center gap-2 bg-white">
+                <Search className="w-4 h-4 opacity-70" />
+                <input
+                  className="grow"
+                  placeholder="Escribe cualquier letra para buscar..."
+                  value={filtro}
+                  onChange={(e) => setFiltro(e.target.value)}
+                />
+              </label>
+              <button
+                className={`btn btn-outline sm:w-28 ${!filtro ? "btn-disabled" : ""}`}
+                onClick={() => setFiltro("")}
+                disabled={!filtro}
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 cuaderno texto-manuscrita p-3 sm:p-4">
         <div className="pl-7 pr-1 sm:pl-14">
           {data.items.length === 0 && (
             <div className="opacity-60">🧺 Aún no hay productos en la lista.</div>
           )}
 
-          {data.items.map((item) => (
+          {data.items.length > 0 && itemsFiltrados.length === 0 && (
+            <div className="alert alert-info bg-white/80 border border-dashed">
+              <span>😅 No encontramos resultados para "{filtro}".</span>
+            </div>
+          )}
+
+          {itemsFiltrados.map((item) => (
             <div key={item.id} className="flex items-start gap-2 sm:gap-3 py-2 border-b border-dashed border-slate-200">
               <input
                 type="checkbox"
@@ -474,8 +535,16 @@ export default function ListaDetalle() {
               />
 
               <div className="flex-1 min-w-0">
-                <div className={`font-bold text-[1.05rem] break-words ${item.comprado ? "line-through opacity-70" : ""}`}>
-                  {(item.comprado ? "COMPRADO · " : "PENDIENTE · ") + item.producto}
+                <div className="font-bold text-[1.05rem] break-words">
+                  <span
+                    className={`text-[11px] tracking-wide align-middle mr-1 ${
+                      item.comprado ? "text-emerald-600" : "text-amber-600"
+                    }`}
+                  >
+                    {item.comprado ? "COMPRADO" : "PENDIENTE"}
+                  </span>
+                  <span className="text-slate-400 mr-1">·</span>
+                  <span className={item.comprado ? "line-through opacity-70" : ""}>{item.producto}</span>
                 </div>
 
                 <div className="text-sm opacity-80 mt-1">
@@ -545,7 +614,7 @@ export default function ListaDetalle() {
       <div className="mt-4 card bg-white/80 border border-white shadow">
         <div className="card-body">
           <div className="flex flex-wrap gap-4">
-            <div>Refs: <b>{data.total_refs}</b></div>
+            <div>Productos: <b>{data.total_refs}</b></div>
             <div>Comprado: <b>{formatearCOP(data.total_comprado || 0)}</b></div>
             <div>Falta: <b>{formatearCOP(data.total_pendiente || 0)}</b></div>
           </div>
@@ -625,6 +694,17 @@ export default function ListaDetalle() {
             <span>{toast.texto}</span>
           </div>
         </div>
+      )}
+
+      {mostrarSubir && (
+        <button
+          className="btn btn-primary btn-circle fixed right-4 bottom-6 sm:right-8 sm:bottom-8 shadow-xl z-[80]"
+          onClick={subirArriba}
+          aria-label="Subir al inicio"
+          title="Subir al inicio"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
       )}
     </div>
   )

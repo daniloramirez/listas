@@ -171,7 +171,7 @@ export default function Home() {
               </div>
 
               <div className="mt-2 text-sm grid gap-1">
-                <div className="rounded-lg bg-white/70 px-2 py-1 border border-white/80">📌 Referencias: <b>{l.total_refs}</b></div>
+                <div className="rounded-lg bg-white/70 px-2 py-1 border border-white/80">📌 Productos: <b>{l.total_refs}</b></div>
                 <div className="rounded-lg bg-white/70 px-2 py-1 border border-white/80">💰 Comprado: <b>${(l.total_comprado || 0).toLocaleString("es-CO")} COP</b></div>
                 <div className="rounded-lg bg-white/70 px-2 py-1 border border-white/80">🧾 Falta: <b>${(l.total_pendiente || 0).toLocaleString("es-CO")} COP</b></div>
               </div>
