@@ -22,6 +22,12 @@
   filter: blur(.1px);
 }
 
+@media (max-width: 640px) {
+  .cuaderno::before {
+    left: 24px;
+  }
+}
+
 .cuaderno::after {
   content: "";
   position: absolute;

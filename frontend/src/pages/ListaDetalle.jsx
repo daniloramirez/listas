@@ -64,6 +64,7 @@ export default function ListaDetalle() {
   const [sugProductos, setSugProductos] = useState([])
   const [sugUnidades, setSugUnidades] = useState([])
   const [cantidadesEdit, setCantidadesEdit] = useState({})
+  const [preciosEdit, setPreciosEdit] = useState({})
   const [msg, setMsg] = useState("")
 
   const [abrirModalCopiar, setAbrirModalCopiar] = useState(false)
@@ -87,10 +88,13 @@ export default function ListaDetalle() {
     const r = await api.get(`/api/listas/listas/${id}`)
     setData(r.data)
     const mapCantidades = {}
+    const mapPrecios = {}
     for (const item of r.data.items || []) {
       mapCantidades[item.id] = String(cantidadEntera(item.cantidad))
+      mapPrecios[item.id] = formatearMiles(String(item.precio || 0))
     }
     setCantidadesEdit(mapCantidades)
+    setPreciosEdit(mapPrecios)
   }
 
   useEffect(() => {
@@ -235,6 +239,32 @@ export default function ListaDetalle() {
       setCantidadesEdit((prev) => ({ ...prev, [item.id]: String(actual) }))
       setMsg(extraerMensajeError(e, "No se pudo actualizar la cantidad"))
       mostrarToast("❌ No se pudo actualizar la cantidad", "error")
+    }
+  }
+
+  const guardarPrecio = async (item) => {
+    if (!puedeEditar) return
+    const actual = Number(item.precio || 0)
+    const nuevoPrecio = Number(soloDigitos(preciosEdit[item.id]) || 0)
+
+    if (!Number.isFinite(nuevoPrecio) || nuevoPrecio < 0) {
+      setPreciosEdit((prev) => ({ ...prev, [item.id]: formatearMiles(String(actual)) }))
+      mostrarToast("⚠️ Precio inválido. Debe ser >= 0", "warning")
+      return
+    }
+    if (nuevoPrecio === actual) {
+      setPreciosEdit((prev) => ({ ...prev, [item.id]: formatearMiles(String(actual)) }))
+      return
+    }
+
+    try {
+      await api.patch(`/api/listas/listas/${id}/items/${item.id}`, { precio: nuevoPrecio })
+      await cargar()
+      mostrarToast("💾 Precio actualizado")
+    } catch (e) {
+      setPreciosEdit((prev) => ({ ...prev, [item.id]: formatearMiles(String(actual)) }))
+      setMsg(extraerMensajeError(e, "No se pudo actualizar el precio"))
+      mostrarToast("❌ No se pudo actualizar el precio", "error")
     }
   }
 
@@ -427,24 +457,24 @@ export default function ListaDetalle() {
         </div>
       )}
 
-      <div className="mt-4 cuaderno texto-manuscrita p-4">
-        <div className="pl-14">
+      <div className="mt-4 cuaderno texto-manuscrita p-3 sm:p-4">
+        <div className="pl-7 pr-1 sm:pl-14">
           {data.items.length === 0 && (
             <div className="opacity-60">🧺 Aún no hay productos en la lista.</div>
           )}
 
           {data.items.map((item) => (
-            <div key={item.id} className="flex items-start gap-3 py-2 border-b border-dashed border-slate-200">
+            <div key={item.id} className="flex items-start gap-2 sm:gap-3 py-2 border-b border-dashed border-slate-200">
               <input
                 type="checkbox"
-                className="checkbox checkbox-success mt-1"
+                className="checkbox checkbox-success mt-1 shrink-0"
                 checked={item.comprado}
                 onChange={() => toggleComprado(item)}
                 disabled={!puedeEditar}
               />
 
-              <div className="flex-1">
-                <div className={`font-bold text-[1.05rem] ${item.comprado ? "line-through opacity-70" : ""}`}>
+              <div className="flex-1 min-w-0">
+                <div className={`font-bold text-[1.05rem] break-words ${item.comprado ? "line-through opacity-70" : ""}`}>
                   {(item.comprado ? "COMPRADO · " : "PENDIENTE · ") + item.producto}
                 </div>
 
@@ -452,8 +482,8 @@ export default function ListaDetalle() {
                   Unidad: <b>{item.unidad || "UNIDAD"}</b> · Precio: <b>{formatearCOP(item.precio || 0)}</b>
                 </div>
 
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-sm">Cantidad:</span>
+                <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="text-sm shrink-0">Cantidad:</span>
                   <input
                     className="input input-bordered input-sm w-24"
                     type="number"
@@ -473,6 +503,26 @@ export default function ListaDetalle() {
                   </span>
                 </div>
 
+                <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="text-sm shrink-0">Precio (COP):</span>
+                  <label className="input input-bordered input-sm w-36">
+                    <input
+                      className="w-full"
+                      inputMode="numeric"
+                      value={preciosEdit[item.id] ?? formatearMiles(String(item.precio || 0))}
+                      onChange={(e) => {
+                        setPreciosEdit((prev) => ({ ...prev, [item.id]: formatearMiles(e.target.value) }))
+                      }}
+                      onBlur={() => guardarPrecio(item)}
+                      disabled={!puedeEditar}
+                    />
+                  </label>
+                  <span className="text-xs opacity-60 flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" />
+                    Se guarda al salir del campo
+                  </span>
+                </div>
+
                 {item.tocado_por?.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {item.tocado_por.map((n, i) => (
@@ -483,7 +533,7 @@ export default function ListaDetalle() {
               </div>
 
               {puedeEditar && (
-                <button className="btn btn-sm btn-error btn-outline" onClick={() => pedirEliminarItem(item)}>
+                <button className="btn btn-sm btn-error btn-outline shrink-0 self-start" onClick={() => pedirEliminarItem(item)}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
